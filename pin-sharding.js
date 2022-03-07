@@ -2,15 +2,15 @@
 // @name         pin-sharding
 // @name:zh      PIN Sharding 分库分布
 // @namespace    https://www.diguage.com/monkeyell
-// @version      1.0
+// @version      2.0
 // @description  PIN 分库分表插件，在 MyDB 页面输入PIN，显示分库分表结果，并且直接选中对应的数据库连接。公司内部辅助工具，非内部人员请勿下载。
 // @author       diguage
 // @homepage     https://www.diguage.com
 // @match        mydb.jdfmgt.com
 // @grant        unsafeWindow
 // @require      https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js
-// @updateURL    https://raw.githubusercontent.com/diguage/monkeyell/main/pin-sharding.js
 // @note         2021-05-22 v1.0 初步实现分库分表结果展示以及自动选择数据库功能
+// @note         2022-03-07 v2.0 支持多个库的分库分表
 // ==/UserScript==
 
 
@@ -35,7 +35,7 @@
 
         const zeroPad = (num, places) => String(num).padStart(places, '0')
 
-        function selectDb(dbNum) {
+        function selectDb(dbPrefix,dbNum) {
             console.log("selectDb=" + dbNum);
             console.log("selectDb=" + zeroPad(dbNum, 2));
             // 模拟点击加载数据库列表
@@ -43,7 +43,7 @@
             $('#boundlist-1039-listEl > ul > li').each(function () {
                 let ele = $(this);
                 let text = ele.text();
-                if (text.includes("mydb-bt-" + zeroPad(dbNum, 2) + "01")) {
+                if (text.includes(dbPrefix + zeroPad(dbNum, 2) + "01")) {
                     ele.click();
                 }
             });
@@ -59,17 +59,17 @@
             }, 1000);
         }
 
-        function compileDbIndex() {
+        function compileDbIndex(dbOption) {
             console.log("compileDbIndex");
             var pinText = $('#pinText').val();
             console.log("pin=" + pinText);
             let pinDbNumText = '';
-            let prodShard = compileDbNum(pinText, 84, 150, false);
-            selectDb(prodShard[1]);
-            writeTableNum(prodShard[3]);
+            let prodShard = compileDbNum(pinText, dbOption.dbCount, dbOption.tableCount, dbOption.modFlag);
+            selectDb(dbOption.dbPrefix,prodShard[1]);
+            // writeTableNum(prodShard[3]);
             prodShard[3] = "_" + zeroPad(prodShard[3], 4);
-            pinDbNumText += '<span>生产：' + prodShard.join("&nbsp;&nbsp;&nbsp;") + '</span>';
-            pinDbNumText += '  　　　<span>测试：' + compileDbNum(pinText, 2, 2, true).join("&nbsp;&nbsp;&nbsp;") + '</span>';
+            pinDbNumText += '<span>生产：' + prodShard + '</span>';
+            pinDbNumText += '<span style="margin-left:10px;">测试：' + compileDbNum(pinText, 2, 2, true) + '</span>';
             let ele = $('#pinDbNumText');
             ele.text("");
             ele.append(pinDbNumText);
@@ -99,7 +99,8 @@
                 let strHashCode = hashCode(Base64.encode(pin));
                 strHashCode = Math.abs(strHashCode);
                 if (hashCodeFlag) {
-                    strHashCode = strHashCode % 1000;
+                    strHashCode = strHashCode % 10000;
+                    console.log("hashCode after mod 10000:" + strHashCode);
                 }
                 let mode = dbNum * tableNum;
                 let dbIndex = parseInt(strHashCode % mode / tableNum);
@@ -134,11 +135,11 @@
                     var code = str.charCodeAt(i);
                     if (code > 0x0000 && code <= 0x007F) {
                         // 单字节，这里并不考虑0x0000，因为它是空字节
-                        // U+00000000 – U+0000007F 	0xxxxxxx
+                        // U+00000000 – U+0000007F  0xxxxxxx
                         res.push(str.charAt(i));
                     } else if (code >= 0x0080 && code <= 0x07FF) {
                         // 双字节
-                        // U+00000080 – U+000007FF 	110xxxxx 10xxxxxx
+                        // U+00000080 – U+000007FF  110xxxxx 10xxxxxx
                         // 110xxxxx
                         var byte1 = 0xC0 | ((code >> 6) & 0x1F);
                         // 10xxxxxx
@@ -149,7 +150,7 @@
                         );
                     } else if (code >= 0x0800 && code <= 0xFFFF) {
                         // 三字节
-                        // U+00000800 – U+0000FFFF 	1110xxxx 10xxxxxx 10xxxxxx
+                        // U+00000800 – U+0000FFFF  1110xxxx 10xxxxxx 10xxxxxx
                         // 1110xxxx
                         var byte1 = 0xE0 | ((code >> 12) & 0x0F);
                         // 10xxxxxx
@@ -163,13 +164,13 @@
                         );
                     } else if (code >= 0x00010000 && code <= 0x001FFFFF) {
                         // 四字节
-                        // U+00010000 – U+001FFFFF 	11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+                        // U+00010000 – U+001FFFFF  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
                     } else if (code >= 0x00200000 && code <= 0x03FFFFFF) {
                         // 五字节
-                        // U+00200000 – U+03FFFFFF 	111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+                        // U+00200000 – U+03FFFFFF  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
                     } else /** if (code >= 0x04000000 && code <= 0x7FFFFFFF)*/ {
                         // 六字节
-                        // U+04000000 – U+7FFFFFFF 	1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+                        // U+04000000 – U+7FFFFFFF  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
                     }
                 }
 
@@ -282,10 +283,19 @@
             }
         };
 
+        var dbCluster = [{"dbName":"账务核心","dbPrefix":"mydb-bt-","dbCount":84, "tableCount":"150","modFlag":false},
+                         {"dbName":"超白","dbPrefix":"mydb-sccbill-","dbCount":24, "tableCount":"300","modFlag":true},
+                         {"dbName":"账户","dbPrefix":"mydb-btaccount-","dbCount":84, "tableCount":"150","modFlag":false}
+                        ];
+
+
+        var btnHtml = "";
+        for(var i = 0; i<dbCluster.length; i++) {
+            btnHtml = btnHtml + '<button id="pinBtn_'+i+'" style="margin-left:10px;cursor:hand;">'+dbCluster[i].dbName+'</button>'
+        }
 
         let btnEle = $('#tbfill-1033');
-        btnEle.append('<span style="visibility:hidden;">11111111111111111111111111111111111111</span>' +
-            '<span>PIN：&nbsp;<input type="text" placeholder="输入PIN，敲 Enter 键" id="pinText">&nbsp;&nbsp;<button id="pinBtn">计算库表</button></span>');
+        btnEle.append('<span style="margin-left:50px;">PIN：</span><span><input type="text" placeholder="输入PIN,点击按钮自动打开对应分库" id="pinText" size="30"></span><span id="pinBtns">'+btnHtml+'</span>');
 
         let resultEle = $('#tbfill-1034');
         resultEle.append('<span id="pinDbNumText"></span>');
@@ -295,15 +305,15 @@
             resultEle.css('top', '10px');
         }, 1000);
 
-        $('#pinBtn').click(function () {
-            console.log("pinBtn click...");
-            compileDbIndex();
+        $('#pinBtns button').click(function () {
+            console.log("pinBtn click...,"+this.id);
+            compileDbIndex(dbCluster[this.id.substr(7)]);
         });
 
         $('#pinText').keypress(function (e) {
             if (e.which === 13) {
                 console.log("input enter...");
-                compileDbIndex();
+                compileDbIndex(dbCluster[0]);
             }
         });
 
@@ -311,5 +321,4 @@
         $("#ext-gen1153").click();
 
     });
-    // Your code here...
 })();
