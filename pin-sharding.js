@@ -2,15 +2,16 @@
 // @name         pin-sharding
 // @name:zh      PIN Sharding 分库分布
 // @namespace    https://www.diguage.com/monkeyell
-// @version      2.0
+// @version      2.1
 // @description  PIN 分库分表插件，在 MyDB 页面输入PIN，显示分库分表结果，并且直接选中对应的数据库连接。公司内部辅助工具，非内部人员请勿下载。
 // @author       diguage
 // @homepage     https://www.diguage.com
 // @match        mydb.jdfmgt.com
 // @grant        unsafeWindow
-// @require      https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js
+// @require      https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js
 // @note         2021-05-22 v1.0 初步实现分库分表结果展示以及自动选择数据库功能
 // @note         2022-03-07 v2.0 支持多个库的分库分表
+// @note         2022-03-16 v2.1 更换 JS 的 CDN
 // ==/UserScript==
 
 

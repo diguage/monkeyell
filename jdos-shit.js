@@ -2,14 +2,15 @@
 // @name         jdos-shit
 // @name:zh      JDOS 拉屎占坑
 // @namespace    https://www.diguage.com/monkeyell
-// @version      1.0
+// @version      1.1
 // @description  JDOS 拉屎占坑专用。公司内部辅助工具，非内部人员请勿下载。
 // @author       diguage
 // @homepage     https://www.diguage.com
 // @match        jdt.jdos.jd.com/
 // @grant        unsafeWindow
-// @require      https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js
+// @require      https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js
 // @note         2022-03-16 v1.0 初步强坑确认一条龙
+// @note         2022-03-16 v1.1 更换 JS 的 CDN
 // ==/UserScript==
 
 (function() {
