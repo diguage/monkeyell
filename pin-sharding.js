@@ -2,21 +2,20 @@
 // @name         pin-sharding
 // @name:zh      PIN Sharding 分库分布
 // @namespace    https://www.diguage.com/monkeyell
-// @version      2.1
+// @version      1.0
 // @description  PIN 分库分表插件，在 MyDB 页面输入PIN，显示分库分表结果，并且直接选中对应的数据库连接。公司内部辅助工具，非内部人员请勿下载。
 // @author       diguage
 // @homepage     https://www.diguage.com
 // @match        mydb.jdfmgt.com
 // @grant        unsafeWindow
-// @require      https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js
+// @require      https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js
 // @note         2021-05-22 v1.0 初步实现分库分表结果展示以及自动选择数据库功能
-// @note         2022-03-07 v2.0 支持多个库的分库分表
-// @note         2022-03-16 v2.1 更换 JS 的 CDN
 // ==/UserScript==
 
 
 (function () {
     'use strict';
+    var smsDbPrefix = "mydb-btusersms-";
 
     $(document).ready(function () {
         console.log('document ready, load script...');
@@ -36,7 +35,7 @@
 
         const zeroPad = (num, places) => String(num).padStart(places, '0')
 
-        function selectDb(dbPrefix,dbNum) {
+        function selectDb(dbPrefix, dbNum) {
             console.log("selectDb=" + dbNum);
             console.log("selectDb=" + zeroPad(dbNum, 2));
             // 模拟点击加载数据库列表
@@ -65,9 +64,9 @@
             var pinText = $('#pinText').val();
             console.log("pin=" + pinText);
             let pinDbNumText = '';
-            let prodShard = compileDbNum(pinText, dbOption.dbCount, dbOption.tableCount, dbOption.modFlag);
-            selectDb(dbOption.dbPrefix,prodShard[1]);
-            // writeTableNum(prodShard[3]);
+            let prodShard = compileDbNum(pinText, dbOption.dbCount, dbOption.tableCount, dbOption.modFlag, dbOption.dbPrefix);
+            selectDb(dbOption.dbPrefix, prodShard[1]);
+            //writeTableNum(prodShard[3]);
             prodShard[3] = "_" + zeroPad(prodShard[3], 4);
             pinDbNumText += '<span>生产：' + prodShard + '</span>';
             pinDbNumText += '<span style="margin-left:10px;">测试：' + compileDbNum(pinText, 2, 2, true) + '</span>';
@@ -93,7 +92,7 @@
         /**
          *转换dbNum
          */
-        function compileDbNum(pin, dbNum, tableNum, hashCodeFlag) {
+        function compileDbNum(pin, dbNum, tableNum, hashCodeFlag, dbPrefix) {
             console.log("pin=" + pin + ", dbNum=" + dbNum + ", tableNum=" + tableNum + ", hashCodeFlag=" + hashCodeFlag);
             var pinDbNumText = [];
             if (pin !== undefined) {
@@ -106,7 +105,9 @@
                 let mode = dbNum * tableNum;
                 let dbIndex = parseInt(strHashCode % mode / tableNum);
                 let tableIndex = strHashCode % tableNum;
-
+                if (dbPrefix === smsDbPrefix) {
+                    dbIndex += 1;
+                }
                 pinDbNumText.push('db:', dbIndex, ' tableIndex:', tableIndex);
             }
             console.log(pinDbNumText.join(" "));
@@ -284,19 +285,21 @@
             }
         };
 
-        var dbCluster = [{"dbName":"账务核心","dbPrefix":"mydb-bt-","dbCount":84, "tableCount":"150","modFlag":false},
-                         {"dbName":"超白","dbPrefix":"mydb-sccbill-","dbCount":24, "tableCount":"300","modFlag":true},
-                         {"dbName":"账户","dbPrefix":"mydb-btaccount-","dbCount":84, "tableCount":"150","modFlag":false}
-                        ];
+        var dbCluster = [{ "dbName": "账务核心", "dbPrefix": "mydb-bt-", "dbCount": 84, "tableCount": "150", "modFlag": false },
+        { "dbName": "账户", "dbPrefix": "mydb-btaccount-", "dbCount": 84, "tableCount": "150", "modFlag": false },
+        { "dbName": "触达", "dbPrefix": smsDbPrefix, "dbCount": 12, "tableCount": "100", "modFlag": true },
+        { "dbName": "超白", "dbPrefix": "mydb-sccbill-", "dbCount": 24, "tableCount": "300", "modFlag": true },
+        { "dbName": "帮还", "dbPrefix": "mydb-btagentrepay-", "dbCount": 12, "tableCount": "200", "modFlag": true }
+        ];
 
 
         var btnHtml = "";
-        for(var i = 0; i<dbCluster.length; i++) {
-            btnHtml = btnHtml + '<button id="pinBtn_'+i+'" style="margin-left:10px;cursor:hand;">'+dbCluster[i].dbName+'</button>'
+        for (var i = 0; i < dbCluster.length; i++) {
+            btnHtml = btnHtml + '<button id="pinBtn_' + i + '" style="margin-left:10px;cursor:hand;">' + dbCluster[i].dbName + '</button>'
         }
 
         let btnEle = $('#tbfill-1033');
-        btnEle.append('<span style="margin-left:50px;">PIN：</span><span><input type="text" placeholder="输入PIN,点击按钮自动打开对应分库" id="pinText" size="30"></span><span id="pinBtns">'+btnHtml+'</span>');
+        btnEle.append('<span style="margin-left:50px;">PIN：</span><span><input type="text" placeholder="输入PIN,点击按钮自动打开对应分库" id="pinText" size="30"></span><span id="pinBtns">' + btnHtml + '</span>');
 
         let resultEle = $('#tbfill-1034');
         resultEle.append('<span id="pinDbNumText"></span>');
@@ -307,7 +310,7 @@
         }, 1000);
 
         $('#pinBtns button').click(function () {
-            console.log("pinBtn click...,"+this.id);
+            console.log("pinBtn click...," + this.id);
             compileDbIndex(dbCluster[this.id.substr(7)]);
         });
 
