@@ -1,36 +1,29 @@
 // ==UserScript==
 // @name         会议室小助手
-// @namespace    https://www.diguage.com/monkeyell
-// @version      1.1
-// @description  会议室预订助手
-// @author       diguage
-// @homepage     https://www.diguage.com
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  try to take over the world!
+// @author       You
 // @grant        none
 // @include      http://jms.erp.jd.com/*
 // @include      https://jms.erp.jd.com/*
-// @require      https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js
+// @require      https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js
+// ==/UserScript==
 //使用须知：需要保持页面一直打开，每天重新登录一次；
-//
 //自动确认会议室的逻辑：每25分钟查询一次已预约会议室列表，对可以确认的会议室进行确认；9:40开始，19点结束；
-//
 //自动预订会议室的逻辑：
 //0、自动预订后天的会议室，界面上显示的日期没有意义，仅仅是为了选择时间范围；
 //1、在08:59:55(这个时间可以是接近09:00的任意时间)查询符合条件的会议室，构建可预订会议室的列表(每个元素为1个小时1个会议室);在09:00发送预订请求；
 //2、一个时间段为一组，按时间段将符合条件的会议室进行分组，每个时间段仅预订1个会议室；
 //3、autoMeetingCodeArray指定了预订的范围，已经内置了常用的中等会议室和比较大的会议室
-//
 //自动捡漏的逻辑：
 //0、通过页面选择日期和时间、容纳人数，自动查询并预订会议室；
 //1、读取界面上显示的日期和时间，定期查询(1分钟，频率可调)是否有符合条件的会议室；
 //2、如果选择的时间段是连续的，但是没有连续的会议室，则会按小时定尽可能多的会议室，例如时间范围选择14-19点，但是只有14-15和17-18，则只会预订这2个时间段的
 //3、通过autoPickInterval指定执行频率，默认是20秒
-//
 //变更记录
 //2021-11-16,支持按楼层范围筛选
 //2021-11-18,自动跳过中午的时间
-//2022-03-16,更换 JS 的 CDN
-// ==/UserScript==
-
 (function() {
     'use strict';
 
